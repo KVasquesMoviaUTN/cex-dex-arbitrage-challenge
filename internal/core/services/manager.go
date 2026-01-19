@@ -3,13 +3,14 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"math/big"
 	"sync"
 	"time"
 
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/domain"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/ports"
+	"github.com/KVasquesMoviaUTN/my-go-app/internal/observability"
 	"github.com/shopspring/decimal"
 )
 
@@ -59,25 +60,30 @@ func (m *Manager) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start listener: %w", err)
 	}
 
-	log.Println("Bot started. Waiting for blocks...")
+	slog.Info("Bot started. Waiting for blocks...")
 
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case err := <-errChan:
-			log.Printf("Listener error: %v", err)
+			slog.Error("Listener error", "error", err)
 		case blockNum := <-blockChan:
+			observability.BlocksProcessed.Inc()
 			// Non-blocking send to worker pool (drop if full, or block? Prompt says "limit concurrent processing")
 			// If blocks come too fast, we might want to skip.
 			select {
 			case m.sem <- struct{}{}:
+				observability.ActiveWorkers.Inc()
 				go func(bn *big.Int) {
-					defer func() { <-m.sem }()
+					defer func() { 
+						<-m.sem 
+						observability.ActiveWorkers.Dec()
+					}()
 					m.processBlock(ctx, bn)
 				}(blockNum)
 			default:
-				log.Printf("Worker pool full, skipping block %s", blockNum)
+				slog.Warn("Worker pool full, skipping block", "block", blockNum)
 			}
 		}
 	}
@@ -96,7 +102,7 @@ func (m *Manager) processBlock(ctx context.Context, blockNum *big.Int) {
 	m.lastBlock = blockNum
 	m.mu.Unlock()
 
-	log.Printf("Processing Block: %s", blockNum)
+	slog.Info("Processing Block", "block", blockNum)
 
 	// Concurrent Fetching
 	var (
@@ -116,7 +122,7 @@ func (m *Manager) processBlock(ctx context.Context, blockNum *big.Int) {
 	wg.Wait()
 
 	if errCEX != nil {
-		log.Printf("Error fetching CEX: %v", errCEX)
+		slog.Error("Error fetching CEX", "error", errCEX)
 		return
 	}
 
@@ -131,7 +137,7 @@ func (m *Manager) checkArbitrageForSize(ctx context.Context, ob *domain.OrderBoo
 	// We need to fetch the quote specifically for this amount because of slippage on DEX
 	pq, err := m.dex.GetQuote(ctx, m.cfg.TokenInAddr, m.cfg.TokenOutAddr, amountIn, m.cfg.PoolFee)
 	if err != nil {
-		log.Printf("Error fetching DEX quote for %s: %v", amountIn, err)
+		slog.Error("Error fetching DEX quote", "amount", amountIn, "error", err)
 		return
 	}
 
@@ -174,11 +180,26 @@ func (m *Manager) checkArbitrageForSize(ctx context.Context, ob *domain.OrderBoo
 	profit := dexRevenue.Sub(cexCost)
 	
 	if profit.GreaterThan(m.cfg.MinProfit) {
+		observability.ArbitrageOpsFound.Inc()
+		profitFloat, _ := profit.Float64()
+		observability.ArbitrageProfit.WithLabelValues("USDC").Add(profitFloat)
+		
 		m.printReport(amountInDec, cexEffectivePrice, dexEffectivePrice, profit, "CEX -> DEX")
 	}
 }
 
 func (m *Manager) printReport(amount, cexPrice, dexPrice, profit decimal.Decimal, direction string) {
+	// Structured log for machine consumption
+	slog.Info("Arbitrage Opportunity Detected",
+		"timestamp", time.Now().UTC(),
+		"direction", direction,
+		"trade_size_eth", amount.StringFixed(2),
+		"cex_price", cexPrice.StringFixed(2),
+		"dex_price", dexPrice.StringFixed(2),
+		"estimated_profit_usdc", profit.StringFixed(2),
+	)
+
+	// Human readable output
 	fmt.Println("=== ARBITRAGE OPPORTUNITY DETECTED ===")
 	fmt.Printf("Timestamp: %s\n", time.Now().UTC().Format("2006-01-02 15:04:05 UTC"))
 	fmt.Printf("Direction: %s\n", direction)

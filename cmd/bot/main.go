@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"math/big"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -14,11 +16,24 @@ import (
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/adapters/blockchain"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/adapters/ethereum"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/services"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 )
 
 func main() {
+	// 0. Observability Setup
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		slog.Info("Starting metrics server on :9090")
+		if err := http.ListenAndServe(":9090", nil); err != nil {
+			slog.Error("Metrics server failed", "error", err)
+		}
+	}()
+
 	// 1. Configuration
 	viper.SetDefault("ETH_NODE_WS", "wss://mainnet.infura.io/ws/v3/YOUR_KEY")
 	viper.SetDefault("ETH_NODE_HTTP", "https://mainnet.infura.io/v3/YOUR_KEY")
