@@ -16,11 +16,12 @@ import (
 const baseURL = "https://api.binance.com/api/v3"
 
 type Adapter struct {
-	client *http.Client
-	cb     *gobreaker.CircuitBreaker
+	client  *http.Client
+	cb      *gobreaker.CircuitBreaker
+	baseURL string
 }
 
-func NewAdapter() ports.ExchangeAdapter {
+func NewAdapter(baseURL string) ports.ExchangeAdapter {
 	settings := gobreaker.Settings{
 		Name:        "Binance",
 		MaxRequests: 1,
@@ -35,21 +36,22 @@ func NewAdapter() ports.ExchangeAdapter {
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
-		cb: gobreaker.NewCircuitBreaker(settings),
+		cb:      gobreaker.NewCircuitBreaker(settings),
+		baseURL: baseURL,
 	}
 }
 
 type depthResponse struct {
-	LastUpdateID int64             `json:"lastUpdateId"`
-	Bids         [][]string        `json:"bids"`
-	Asks         [][]string        `json:"asks"`
+	LastUpdateID int64      `json:"lastUpdateId"`
+	Bids         [][]string `json:"bids"`
+	Asks         [][]string `json:"asks"`
 }
 
 // GetOrderBook fetches the current order book for the given symbol.
 // Symbol should be like "ETHUSDC".
 func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.OrderBook, error) {
 	body, err := a.cb.Execute(func() (interface{}, error) {
-		url := fmt.Sprintf("%s/depth?symbol=%s&limit=100", baseURL, symbol)
+		url := fmt.Sprintf("%s/depth?symbol=%s&limit=100", a.baseURL, symbol)
 		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)

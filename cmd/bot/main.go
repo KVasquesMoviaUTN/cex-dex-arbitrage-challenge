@@ -31,9 +31,11 @@ func main() {
 	slog.SetDefault(logger)
 
 	go func() {
+		port := viper.GetString("METRICS_PORT")
+		addr := ":" + port
 		http.Handle("/metrics", promhttp.Handler())
-		slog.Info("Starting metrics server on :9090")
-		if err := http.ListenAndServe(":9090", nil); err != nil {
+		slog.Info("Starting metrics server", "port", port)
+		if err := http.ListenAndServe(addr, nil); err != nil {
 			slog.Error("Metrics server failed", "error", err)
 		}
 	}()
@@ -49,6 +51,8 @@ func main() {
 	viper.SetDefault("TRADE_SIZES", "1000000000000000000,10000000000000000000") // 1 ETH, 10 ETH
 	viper.SetDefault("MIN_PROFIT", "10.0") // 10 USDC
 	viper.SetDefault("MAX_WORKERS", 5)
+	viper.SetDefault("METRICS_PORT", "8085")
+	viper.SetDefault("BINANCE_API_URL", "https://api.binance.com/api/v3")
 
 	viper.AutomaticEnv()
 
@@ -80,7 +84,9 @@ func main() {
 	}
 	cfg.MinProfit = minProfit
 
-	cexAdapter := binance.NewAdapter()
+	binanceURL := viper.GetString("BINANCE_API_URL")
+	slog.Info("Initializing Binance Adapter", "url", binanceURL)
+	cexAdapter := binance.NewAdapter(binanceURL)
 
 	dexAdapter, err := ethereum.NewAdapter(viper.GetString("ETH_NODE_HTTP"))
 	if err != nil {

@@ -17,7 +17,7 @@ import (
 )
 
 // Uniswap V3 QuoterV2 Address
-const QuoterV2Address = "0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6"
+const QuoterV2Address = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 
 // Minimal ABI for QuoterV2 quoteExactInputSingle
 // function quoteExactInputSingle(tuple(address tokenIn, address tokenOut, uint256 amountIn, uint24 fee, uint160 sqrtPriceLimitX96)) external returns (uint256 amountOut, uint160 sqrtPriceX96After, uint32 initializedTicksCrossed, uint256 gasEstimate)

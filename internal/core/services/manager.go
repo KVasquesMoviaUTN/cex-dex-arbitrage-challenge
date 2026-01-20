@@ -142,11 +142,11 @@ func (m *Manager) processBlock(ctx context.Context, blockNum *big.Int) {
 		if res.quote == nil {
 			continue
 		}
-		m.checkArbitrageWithData(ctx, ob, res.amt, res.quote)
+		m.checkArbitrageWithData(ctx, blockNum, ob, res.amt, res.quote)
 	}
 }
 
-func (m *Manager) checkArbitrageWithData(ctx context.Context, ob *domain.OrderBook, amountIn *big.Int, pq *domain.PriceQuote) {
+func (m *Manager) checkArbitrageWithData(ctx context.Context, blockNum *big.Int, ob *domain.OrderBook, amountIn *big.Int, pq *domain.PriceQuote) {
 	amtIn := decimal.NewFromBigInt(amountIn, -m.cfg.TokenInDec)
 	amtOut := pq.Price.Mul(decimal.NewFromFloat(1).Div(decimal.New(1, m.cfg.TokenOutDec)))
 	
@@ -154,8 +154,13 @@ func (m *Manager) checkArbitrageWithData(ctx context.Context, ob *domain.OrderBo
 
 	cexPrice, ok := ob.CalculateEffectivePrice("buy", amtIn)
 	if !ok {
+		slog.Info(fmt.Sprintf("[DEBUG] Block %s: Size %s | CEX Price Unavailable", blockNum, amtIn))
 		return
 	}
+
+	spread := dexPrice.Sub(cexPrice).Div(cexPrice).Mul(decimal.NewFromFloat(100))
+	slog.Info(fmt.Sprintf("[DEBUG] Block %s: Binance %s | Uniswap %s | Spread %s%% | Size %s", 
+		blockNum, cexPrice.StringFixed(2), dexPrice.StringFixed(2), spread.StringFixed(2), amtIn.StringFixed(2)))
 
 	cexFee := decimal.NewFromFloat(0.001)
 	cexCost := cexPrice.Mul(amtIn).Mul(decimal.NewFromFloat(1).Add(cexFee))
