@@ -1,7 +1,7 @@
 # Technical Debt & Future Improvements
 
 ## High Priority (Reliability)
-- [ ] **Circuit Breaker**: Implement a circuit breaker for the Binance API to prevent cascading failures and IP bans (HTTP 429).
+- [x] **Circuit Breaker**: Implement a circuit breaker for the Binance API to prevent cascading failures and IP bans (HTTP 429).
 - [ ] **Rate Limiting**: Add a rate limiter to the `BinanceAdapter` to respect API limits.
 - [ ] **Robust Reconnection**: Update `BlockchainListener` to track `lastProcessedBlock` and backfill missing blocks upon reconnection.
 

@@ -10,19 +10,32 @@ import (
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/domain"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/ports"
 	"github.com/shopspring/decimal"
+	"github.com/sony/gobreaker"
 )
 
 const baseURL = "https://api.binance.com/api/v3"
 
 type Adapter struct {
 	client *http.Client
+	cb     *gobreaker.CircuitBreaker
 }
 
 func NewAdapter() ports.ExchangeAdapter {
+	settings := gobreaker.Settings{
+		Name:        "Binance",
+		MaxRequests: 1,
+		Interval:    0,
+		Timeout:     30 * time.Second,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures > 3
+		},
+	}
+
 	return &Adapter{
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
+		cb: gobreaker.NewCircuitBreaker(settings),
 	}
 }
 
@@ -35,26 +48,35 @@ type depthResponse struct {
 // GetOrderBook fetches the current order book for the given symbol.
 // Symbol should be like "ETHUSDC".
 func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.OrderBook, error) {
-	url := fmt.Sprintf("%s/depth?symbol=%s&limit=100", baseURL, symbol)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	body, err := a.cb.Execute(func() (interface{}, error) {
+		url := fmt.Sprintf("%s/depth?symbol=%s&limit=100", baseURL, symbol)
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request: %w", err)
+		}
+
+		resp, err := a.client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute request: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("binance api returned status: %d", resp.StatusCode)
+		}
+
+		var depth depthResponse
+		if err := json.NewDecoder(resp.Body).Decode(&depth); err != nil {
+			return nil, fmt.Errorf("failed to decode response: %w", err)
+		}
+		return depth, nil
+	})
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, err
 	}
 
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("binance api returned status: %d", resp.StatusCode)
-	}
-
-	var depth depthResponse
-	if err := json.NewDecoder(resp.Body).Decode(&depth); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
+	depth := body.(depthResponse)
 
 	ob := &domain.OrderBook{
 		Timestamp: time.Now(),
