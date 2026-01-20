@@ -1,6 +1,6 @@
 # Binaries
-bot
-main
+/bot
+/main
 *.exe
 *.dll
 
