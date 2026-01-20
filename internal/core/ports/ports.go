@@ -22,6 +22,9 @@ type PriceProvider interface {
 
 	// GetGasPrice fetches the current gas price from the network.
 	GetGasPrice(ctx context.Context) (*big.Int, error)
+
+	// GetSlot0 fetches the slot0 data (sqrtPriceX96, tick) for a pool.
+	GetSlot0(ctx context.Context, tokenIn, tokenOut string, fee int64) (*domain.Slot0, error)
 }
 
 // BlockchainListener defines the interface for listening to blockchain events.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/domain"
@@ -24,8 +25,9 @@ const QuoterV2Address = "0x61fFE014bA17989E743c5F6cB21bF9697530B21e"
 const quoterABI = `[{"inputs":[{"components":[{"internalType":"address","name":"tokenIn","type":"address"},{"internalType":"address","name":"tokenOut","type":"address"},{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint24","name":"fee","type":"uint24"},{"internalType":"uint160","name":"sqrtPriceLimitX96","type":"uint160"}],"internalType":"struct IQuoterV2.QuoteExactInputSingleParams","name":"params","type":"tuple"}],"name":"quoteExactInputSingle","outputs":[{"internalType":"uint256","name":"amountOut","type":"uint256"},{"internalType":"uint160","name":"sqrtPriceX96After","type":"uint160"},{"internalType":"uint32","name":"initializedTicksCrossed","type":"uint32"},{"internalType":"uint256","name":"gasEstimate","type":"uint256"}],"stateMutability":"nonpayable","type":"function"}]`
 
 type Adapter struct {
-	client *ethclient.Client
+	client    *ethclient.Client
 	parsedABI abi.ABI
+	poolCache sync.Map
 }
 
 func NewAdapter(clientURL string) (ports.PriceProvider, error) {
@@ -143,4 +145,101 @@ func (a *Adapter) GetQuote(ctx context.Context, tokenIn, tokenOut string, amount
 
 func (a *Adapter) GetGasPrice(ctx context.Context) (*big.Int, error) {
 	return a.client.SuggestGasPrice(ctx)
+}
+
+// Uniswap V3 Factory Address
+const FactoryAddress = "0x1F98431c8aD98523631AE4a59f267346ea31F984"
+
+// Minimal ABI for Factory getPool
+const factoryABI = `[{"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"},{"internalType":"uint24","name":"","type":"uint24"}],"name":"getPool","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"}]`
+
+// Minimal ABI for Pool slot0
+const poolABI = `[{"inputs":[],"name":"slot0","outputs":[{"internalType":"uint160","name":"sqrtPriceX96","type":"uint160"},{"internalType":"int24","name":"tick","type":"int24"},{"internalType":"uint16","name":"observationIndex","type":"uint16"},{"internalType":"uint16","name":"observationCardinality","type":"uint16"},{"internalType":"uint16","name":"observationCardinalityNext","type":"uint16"},{"internalType":"uint8","name":"feeProtocol","type":"uint8"},{"internalType":"bool","name":"unlocked","type":"bool"}],"stateMutability":"view","type":"function"}]`
+
+func (a *Adapter) GetSlot0(ctx context.Context, tokenIn, tokenOut string, fee int64) (*domain.Slot0, error) {
+	poolAddr, err := a.getPoolAddress(ctx, tokenIn, tokenOut, fee)
+	if err != nil {
+		return nil, err
+	}
+
+	parsed, err := abi.JSON(strings.NewReader(poolABI))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse pool ABI: %w", err)
+	}
+
+	data, err := parsed.Pack("slot0")
+	if err != nil {
+		return nil, fmt.Errorf("failed to pack slot0: %w", err)
+	}
+
+	msg := ethereum.CallMsg{
+		To:   &poolAddr,
+		Data: data,
+	}
+
+	result, err := a.client.CallContract(ctx, msg, nil)
+	if err != nil {
+		return nil, fmt.Errorf("slot0 call failed: %w", err)
+	}
+
+	unpacked, err := parsed.Unpack("slot0", result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unpack slot0: %w", err)
+	}
+
+	if len(unpacked) < 2 {
+		return nil, fmt.Errorf("unexpected slot0 result length")
+	}
+
+	sqrtPriceX96 := unpacked[0].(*big.Int)
+	tick := unpacked[1].(*big.Int)
+
+	return &domain.Slot0{
+		SqrtPriceX96: sqrtPriceX96,
+		Tick:         tick,
+	}, nil
+}
+
+func (a *Adapter) getPoolAddress(ctx context.Context, tokenIn, tokenOut string, fee int64) (common.Address, error) {
+	t0, t1 := common.HexToAddress(tokenIn), common.HexToAddress(tokenOut)
+	
+	key := fmt.Sprintf("%s-%s-%d", t0.Hex(), t1.Hex(), fee)
+	if val, ok := a.poolCache.Load(key); ok {
+		return val.(common.Address), nil
+	}
+	
+	parsed, err := abi.JSON(strings.NewReader(factoryABI))
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to parse factory ABI: %w", err)
+	}
+
+	data, err := parsed.Pack("getPool", t0, t1, big.NewInt(fee))
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to pack getPool: %w", err)
+	}
+
+	factoryAddr := common.HexToAddress(FactoryAddress)
+	msg := ethereum.CallMsg{
+		To:   &factoryAddr,
+		Data: data,
+	}
+
+	result, err := a.client.CallContract(ctx, msg, nil)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("getPool call failed: %w", err)
+	}
+
+	unpacked, err := parsed.Unpack("getPool", result)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("failed to unpack getPool: %w", err)
+	}
+
+	poolAddr := unpacked[0].(common.Address)
+	
+	if poolAddr == (common.Address{}) {
+		return common.Address{}, fmt.Errorf("pool not found")
+	}
+
+	a.poolCache.Store(key, poolAddr)
+	return poolAddr, nil
 }

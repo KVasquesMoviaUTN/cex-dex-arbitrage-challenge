@@ -33,7 +33,10 @@ export default function Header() {
 				</div>
 
 				{/* Connection Status */}
-				<div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700">
+				<div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${isConnected
+						? 'bg-emerald-500/20 border-emerald-500/50'
+						: 'bg-red-500/20 border-red-500/50'
+					}`}>
 					{isConnected ? (
 						<>
 							<div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

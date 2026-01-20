@@ -73,7 +73,10 @@ export default function LiveFeed() {
 								<div className="text-xs text-slate-500 font-normal">
 									Gas: -${(event.data?.gasCost || 0).toFixed(2)}
 								</div>
-								<div>
+								<div className={clsx(
+									(event.data?.estimatedProfit || 0) === 0 ? "text-white" :
+										(event.data?.estimatedProfit || 0) > 0 ? "text-emerald-400" : "text-red-400"
+								)}>
 									Net: ${(event.data?.estimatedProfit || 0).toFixed(2)}
 								</div>
 							</div>

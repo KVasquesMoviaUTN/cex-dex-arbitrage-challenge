@@ -62,6 +62,7 @@ func TestManager_ProcessBlock(t *testing.T) {
 	mockCEX.On("GetOrderBook", mock.Anything, "ETHUSDC").Return(ob, nil)
 	mockDEX.On("GetQuote", mock.Anything, "0xWETH", "0xUSDC", amountIn, int64(3000)).Return(pq, nil)
 	mockDEX.On("GetGasPrice", mock.Anything).Return(big.NewInt(30000000000), nil) // 30 gwei
+	mockDEX.On("GetSlot0", mock.Anything, "0xWETH", "0xUSDC", int64(3000)).Return(&domain.Slot0{SqrtPriceX96: big.NewInt(0), Tick: big.NewInt(0)}, nil)
 	mockNotifier.On("Broadcast", mock.Anything).Return()
 
 	// We can't easily test the private processBlock method directly unless we export it or trigger it via Start.

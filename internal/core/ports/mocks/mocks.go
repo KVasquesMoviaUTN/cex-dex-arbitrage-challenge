@@ -42,6 +42,14 @@ func (m *MockPriceProvider) GetGasPrice(ctx context.Context) (*big.Int, error) {
 	return args.Get(0).(*big.Int), args.Error(1)
 }
 
+func (m *MockPriceProvider) GetSlot0(ctx context.Context, tokenIn, tokenOut string, fee int64) (*domain.Slot0, error) {
+	args := m.Called(ctx, tokenIn, tokenOut, fee)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.Slot0), args.Error(1)
+}
+
 // MockBlockchainListener is a mock implementation of ports.BlockchainListener
 type MockBlockchainListener struct {
 	mock.Mock
