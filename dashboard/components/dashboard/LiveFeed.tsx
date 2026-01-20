@@ -120,7 +120,7 @@ export default function LiveFeed() {
 											-${(event.data?.gasCost || 0).toFixed(2)}
 										</div>
 									</div>
-									<div className="bg-slate-900/50 rounded-lg p-2">
+									<div className={clsx("rounded-lg p-2", netProfit === 0 ? "bg-slate-900/50" : netProfit > 0 ? "bg-emerald-500/20 border border-emerald-500/30" : "bg-red-500/20 border border-red-500/30")}>
 										<div className="text-slate-500 mb-0.5 flex items-center gap-1">
 											Net
 											{netProfit > 0 ? <TrendingUp className="w-3 h-3" /> : netProfit < 0 ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}

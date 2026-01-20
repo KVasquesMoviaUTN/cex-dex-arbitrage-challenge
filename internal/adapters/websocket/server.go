@@ -53,7 +53,6 @@ func (s *Server) handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	slog.Info("New WebSocket client connected")
 
-	// Keep connection alive
 	for {
 		_, _, err := ws.ReadMessage()
 		if err != nil {
@@ -75,8 +74,6 @@ func (s *Server) handleMessages() {
 			if err != nil {
 				slog.Error("WS write failed", "error", err)
 				client.Close()
-				// Note: We can't delete from map while iterating with RLock. 
-				// In a robust system, we'd collect dead clients and remove them later, 
 				// or use a dedicated loop for removal. 
 				// For simplicity here, we just close it and let the read loop handle removal.
 			}

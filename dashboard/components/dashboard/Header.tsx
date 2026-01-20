@@ -35,12 +35,12 @@ export default function Header() {
 					</div>
 
 					{/* Connection Status - Premium */}
-					<div className={`flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm transition-all duration-300 ${isConnected
-						? 'bg-emerald-500/10 border-emerald-500/30 shadow-lg shadow-emerald-500/20'
-						: 'bg-red-500/10 border-red-500/30 shadow-lg shadow-red-500/20'
+					<div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${isConnected
+							? 'bg-emerald-500 shadow-lg shadow-emerald-500/50'
+							: 'bg-red-500 shadow-lg shadow-red-500/50'
 						}`}>
-						<Radio className={`w-4 h-4 ${isConnected ? 'text-emerald-400 animate-pulse' : 'text-red-400'}`} />
-						<span className={`text-sm font-semibold ${isConnected ? 'text-emerald-400' : 'text-red-400'}`}>
+						<Radio className="w-4 h-4 text-white animate-pulse" />
+						<span className="text-sm font-semibold text-white">
 							{isConnected ? 'LIVE' : 'OFFLINE'}
 						</span>
 					</div>

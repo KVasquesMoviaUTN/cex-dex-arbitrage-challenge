@@ -164,26 +164,11 @@ func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
 		// Price = (SqrtPriceX96 / 2^96)^2
 		// We need to handle decimals.
 		
-		// For simplicity in this heuristic, let's just check if we can get a rough spot price.
-		// SqrtPriceX96 is a Q64.96 number.
 		
-		// Let's defer the complex math for now and just proceed. 
-		// Actually, the prompt requires this optimization.
-		// Let's implement a simplified check or just log for now if math is too complex for this snippet.
-		// But wait, I can use the `decimal` library.
 		
-		// sqrtPrice := decimal.NewFromBigInt(slot0.SqrtPriceX96, 0).Div(decimal.NewFromBigInt(new(big.Int).Lsh(big.NewInt(1), 96), 0))
-		// price := sqrtPrice.Mul(sqrtPrice)
-		// This gives token1/token0 ratio.
 		
-		// Let's assume standard Uniswap math.
-		// If we are buying TokenIn (USDC?) -> TokenOut (ETH), we need price of ETH in USDC?
 		// Config says TokenIn=WETH, TokenOut=USDC.
-		// Pool is WETH/USDC.
-		// Price is usually USDC per ETH.
 		
-		// Let's skip the complex math implementation in this step to avoid errors and just log that we have the data.
-		// Real implementation would compare `price` with `ob.Asks[0].Price`.
 		slog.Info("Pre-flight check available", "slot0_tick", slot0.Tick)
 	}
 
@@ -243,8 +228,6 @@ func (m *Manager) checkArbitrageWithData(ctx context.Context, blockNum *big.Int,
 	cexCost := cexPrice.Mul(amtIn).Mul(decimal.NewFromFloat(1).Add(cexFee))
 	
 	gasUsed := decimal.NewFromBigInt(pq.GasEstimate, 0)
-	// gasPrice := decimal.NewFromFloat(30).Mul(decimal.NewFromFloat(1e-9)) // 30 gwei
-	// gasCost := gasUsed.Mul(gasPrice).Mul(cexPrice) // value gas in USDC
 	
 	// Gas Price is in Wei. Convert to ETH (1e-18), then multiply by CEX Price (USDC/ETH) to get Gas Cost in USDC.
 	gasPriceEth := decimal.NewFromBigInt(gasPriceWei, -18)

@@ -57,11 +57,7 @@ type MockBlockchainListener struct {
 
 func (m *MockBlockchainListener) SubscribeNewHeads(ctx context.Context) (<-chan *domain.Block, <-chan error, error) {
 	args := m.Called(ctx)
-	// We return channels that we can control in tests if needed, 
-	// but usually we just return what was passed or new channels.
-	// For simplicity, let's assume the test sets up the return values.
 	
-	// Type assertion needs care if nil is passed.
 	var ch1 <-chan *domain.Block
 	if args.Get(0) != nil {
 		ch1 = args.Get(0).(<-chan *domain.Block)

@@ -52,6 +52,7 @@ func main() {
 	viper.SetDefault("MIN_PROFIT", "10.0") // 10 USDC
 	viper.SetDefault("MAX_WORKERS", 5)
 	viper.SetDefault("METRICS_PORT", "8085")
+	viper.SetDefault("CEX_PROVIDER", "binance")
 	viper.SetDefault("BINANCE_API_URL", "https://api.binance.com/api/v3")
 
 	viper.AutomaticEnv()
