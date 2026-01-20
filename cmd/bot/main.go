@@ -25,7 +25,6 @@ import (
 )
 
 func main() {
-	// Load .env file if it exists
 	_ = godotenv.Load()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -44,13 +43,13 @@ func main() {
 	viper.SetDefault("ETH_NODE_WS", "wss://mainnet.infura.io/ws/v3/YOUR_KEY")
 	viper.SetDefault("ETH_NODE_HTTP", "https://mainnet.infura.io/v3/YOUR_KEY")
 	viper.SetDefault("SYMBOL", "ETHUSDC")
-	viper.SetDefault("TOKEN_IN", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2") // WETH
-	viper.SetDefault("TOKEN_OUT", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48") // USDC
+	viper.SetDefault("TOKEN_IN", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2")
+	viper.SetDefault("TOKEN_OUT", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48")
 	viper.SetDefault("TOKEN_IN_DEC", 18)
 	viper.SetDefault("TOKEN_OUT_DEC", 6)
-	viper.SetDefault("POOL_FEE", 3000) // 0.3%
-	viper.SetDefault("TRADE_SIZES", "1000000000000000000,10000000000000000000") // 1 ETH, 10 ETH
-	viper.SetDefault("MIN_PROFIT", "10.0") // 10 USDC
+	viper.SetDefault("POOL_FEE", 3000)
+	viper.SetDefault("TRADE_SIZES", "1000000000000000000,10000000000000000000")
+	viper.SetDefault("MIN_PROFIT", "10.0")
 	viper.SetDefault("MAX_WORKERS", 5)
 	viper.SetDefault("METRICS_PORT", "8085")
 	viper.SetDefault("BINANCE_API_URL", "https://api.binance.com/api/v3")

@@ -36,11 +36,9 @@ type Manager struct {
 	listener   ports.BlockchainListener
 	notifier   ports.NotificationService
 	
-	// Caching
 	mu         sync.RWMutex
 	lastBlock  *big.Int
 	
-	// Worker Pool
 	sem        chan struct{}
 }
 
@@ -89,7 +87,6 @@ func (m *Manager) Start(ctx context.Context) error {
 }
 
 func (m *Manager) processBlock(ctx context.Context, blockNum *big.Int) {
-	// Check cache/deduplication
 	m.mu.RLock()
 	if m.lastBlock != nil && m.lastBlock.Cmp(blockNum) == 0 {
 		m.mu.RUnlock()
@@ -103,7 +100,8 @@ func (m *Manager) processBlock(ctx context.Context, blockNum *big.Int) {
 
 	slog.Info("new block", "height", blockNum)
 	
-	// Broadcast Heartbeat
+	slog.Info("new block", "height", blockNum)
+	
 	m.notifier.Broadcast(domain.ArbitrageEvent{
 		Type:        "HEARTBEAT",
 		BlockNumber: blockNum.Uint64(),
@@ -188,7 +186,6 @@ func (m *Manager) checkArbitrageWithData(ctx context.Context, blockNum *big.Int,
 	netDex := amtOut.Sub(gasCost)
 	profit := netDex.Sub(cexCost)
 
-	// Broadcast Opportunity (or just telemetry)
 	cexPriceFloat, _ := cexPrice.Float64()
 	dexPriceFloat, _ := dexPrice.Float64()
 	spreadFloat, _ := spread.Float64()
