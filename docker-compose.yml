@@ -5,9 +5,9 @@ services:
     build: .
     container_name: arbitrage-bot
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - ETH_NODE_WS=${ETH_NODE_WS}
-      - ETH_NODE_HTTP=${ETH_NODE_HTTP}
       - SYMBOL=ETHUSDC
       - MIN_PROFIT=10.0
       - TRADE_SIZES=1000000000000000000,10000000000000000000
