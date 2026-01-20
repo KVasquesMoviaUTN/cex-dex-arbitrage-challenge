@@ -12,6 +12,7 @@ import (
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/ports"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/observability"
 	"github.com/shopspring/decimal"
+	"golang.org/x/sync/errgroup"
 )
 
 // Config holds the configuration for the Manager.
@@ -104,79 +105,91 @@ func (m *Manager) processBlock(ctx context.Context, blockNum *big.Int) {
 
 	slog.Info("Processing Block", "block", blockNum)
 
-	// Concurrent Fetching
-	var (
-		ob  *domain.OrderBook
-		errCEX error
-		wg sync.WaitGroup
-	)
+	// Concurrent Fetching using errgroup
+	g, ctx := errgroup.WithContext(ctx)
+	
+	var ob *domain.OrderBook
 
-	wg.Add(1)
+	// 1. Fetch CEX Orderbook
+	g.Go(func() error {
+		var err error
+		ob, err = m.cex.GetOrderBook(ctx, m.cfg.Symbol)
+		if err != nil {
+			return fmt.Errorf("failed to fetch CEX: %w", err)
+		}
+		return nil
+	})
 
-	// Fetch CEX
-	go func() {
-		defer wg.Done()
-		ob, errCEX = m.cex.GetOrderBook(ctx, m.cfg.Symbol)
-	}()
+	// 2. Fetch DEX Quotes (Parallel for each trade size)
+	// We need to store results safely.
+	// Since we are just checking arbitrage inside the loop in the original code,
+	// we can either:
+	// A) Fetch all quotes first, then check.
+	// B) Check inside the goroutine (but we need CEX ob first).
+	//
+	// Better approach:
+	// Fetch CEX and ALL DEX quotes in parallel.
+	// Then once all data is ready, run the logic.
+	
+	type quoteResult struct {
+		amountIn *big.Int
+		quote    *domain.PriceQuote
+	}
+	quoteResults := make([]quoteResult, len(m.cfg.TradeSizes))
 
-	wg.Wait()
+	for i, amountIn := range m.cfg.TradeSizes {
+		i, amountIn := i, amountIn // capture loop variables
+		g.Go(func() error {
+			pq, err := m.dex.GetQuote(ctx, m.cfg.TokenInAddr, m.cfg.TokenOutAddr, amountIn, m.cfg.PoolFee)
+			if err != nil {
+				slog.Error("Error fetching DEX quote", "amount", amountIn, "error", err)
+				return nil // Don't fail the whole group, just skip this size
+			}
+			quoteResults[i] = quoteResult{amountIn: amountIn, quote: pq}
+			return nil
+		})
+	}
 
-	if errCEX != nil {
-		slog.Error("Error fetching CEX", "error", errCEX)
+	// Wait for all fetches
+	if err := g.Wait(); err != nil {
+		slog.Error("Error during data fetch", "error", err)
 		return
 	}
 
-	// Check all trade sizes
-	for _, amountIn := range m.cfg.TradeSizes {
-		m.checkArbitrageForSize(ctx, ob, amountIn)
+	// 3. Analyze Opportunities (CPU bound, fast)
+	for _, res := range quoteResults {
+		if res.quote == nil {
+			continue
+		}
+		m.checkArbitrageWithData(ctx, ob, res.amountIn, res.quote)
 	}
 }
 
-func (m *Manager) checkArbitrageForSize(ctx context.Context, ob *domain.OrderBook, amountIn *big.Int) {
-	// 1. Get DEX Price (Sell ETH for USDC)
-	// We need to fetch the quote specifically for this amount because of slippage on DEX
-	pq, err := m.dex.GetQuote(ctx, m.cfg.TokenInAddr, m.cfg.TokenOutAddr, amountIn, m.cfg.PoolFee)
-	if err != nil {
-		slog.Error("Error fetching DEX quote", "amount", amountIn, "error", err)
-		return
-	}
-
-	amountInDec := decimal.NewFromBigInt(amountIn, -m.cfg.TokenInDec) // e.g. 10 ETH
-	amountOutDec := pq.Price.Mul(decimal.NewFromFloat(1).Div(decimal.New(1, m.cfg.TokenOutDec))) // Raw AmountOut * 10^-6
+// checkArbitrageWithData is a helper to keep logic clean after parallel fetch
+func (m *Manager) checkArbitrageWithData(ctx context.Context, ob *domain.OrderBook, amountIn *big.Int, pq *domain.PriceQuote) {
+	amountInDec := decimal.NewFromBigInt(amountIn, -m.cfg.TokenInDec)
+	amountOutDec := pq.Price.Mul(decimal.NewFromFloat(1).Div(decimal.New(1, m.cfg.TokenOutDec)))
 	
-	dexEffectivePrice := amountOutDec.Div(amountInDec) // Price of 1 ETH in USDC (effective)
+	dexEffectivePrice := amountOutDec.Div(amountInDec)
 
-	// 2. Get CEX Price (Buy ETH with USDC)
-	// We need to buy `amountIn` ETH.
 	// Calculate effective ask price on CEX for this volume.
 	cexEffectivePrice, ok := ob.CalculateEffectivePrice("buy", amountInDec)
 	if !ok {
-		// Not enough liquidity on CEX
 		return
 	}
 
-	// 3. Profit Calculation
-	// Direction: Buy CEX -> Sell DEX
-	
-	// Costs & Fees
-	// CEX Fee: 0.1%
+	// Profit Calculation
 	cexFeeRate := decimal.NewFromFloat(0.001)
-	cexCost := cexEffectivePrice.Mul(amountInDec).Mul(decimal.NewFromFloat(1).Add(cexFeeRate)) // Total USDC spent
+	cexCost := cexEffectivePrice.Mul(amountInDec).Mul(decimal.NewFromFloat(1).Add(cexFeeRate))
 	
-	// DEX Revenue
-	// Output from Quoter is already net of pool fee (0.3%).
-	// We just need to subtract Gas.
-	// Gas Cost in USDC. Estimate: GasUsed * GasPrice * ETHPrice.
-	// Let's assume GasPrice = 30 Gwei (standard) and ETH Price = CEX Price.
 	gasUsed := decimal.NewFromBigInt(pq.GasEstimate, 0)
-	gasPriceGwei := decimal.NewFromFloat(30) // 30 Gwei
+	gasPriceGwei := decimal.NewFromFloat(30)
 	gasPriceETH := gasPriceGwei.Mul(decimal.NewFromFloat(1e-9))
 	ethPriceUSDC := cexEffectivePrice
 	gasCostUSDC := gasUsed.Mul(gasPriceETH).Mul(ethPriceUSDC)
 	
 	dexRevenue := amountOutDec.Sub(gasCostUSDC)
 	
-	// Profit
 	profit := dexRevenue.Sub(cexCost)
 	
 	if profit.GreaterThan(m.cfg.MinProfit) {
@@ -187,6 +200,8 @@ func (m *Manager) checkArbitrageForSize(ctx context.Context, ob *domain.OrderBoo
 		m.printReport(amountInDec, cexEffectivePrice, dexEffectivePrice, profit, "CEX -> DEX")
 	}
 }
+
+
 
 func (m *Manager) printReport(amount, cexPrice, dexPrice, profit decimal.Decimal, direction string) {
 	// Structured log for machine consumption

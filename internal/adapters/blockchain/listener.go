@@ -33,6 +33,11 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 		backoff := time.Second
 		maxBackoff := 30 * time.Second
 
+		// Heartbeat setup
+		heartbeatInterval := 30 * time.Second
+		timer := time.NewTimer(heartbeatInterval)
+		defer timer.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -71,6 +76,15 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 				// Listen loop
 				connLoop:
 				for {
+					// Reset timer on every loop start (or better, when we get a message)
+					if !timer.Stop() {
+						select {
+						case <-timer.C:
+						default:
+						}
+					}
+					timer.Reset(heartbeatInterval)
+
 					select {
 					case <-ctx.Done():
 						sub.Unsubscribe()
@@ -81,7 +95,13 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 						sub.Unsubscribe()
 						client.Close()
 						break connLoop // Break to outer loop to reconnect
+					case <-timer.C:
+						l.logError(errChan, fmt.Errorf("heartbeat timeout: no blocks for %v", heartbeatInterval))
+						sub.Unsubscribe()
+						client.Close()
+						break connLoop
 					case header := <-headers:
+						// Reset timer happens at top of loop
 						select {
 						case out <- header.Number:
 						case <-ctx.Done():
