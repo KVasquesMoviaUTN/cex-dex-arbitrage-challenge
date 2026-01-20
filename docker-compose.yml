@@ -14,6 +14,15 @@ services:
     ports:
       - "9090:9090"
 
+  dashboard:
+    build: ./dashboard
+    container_name: arbitrage-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080 # Assuming bot WS is exposed on 8080
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

@@ -35,6 +35,13 @@ The project follows **Hexagonal Architecture (Ports & Adapters)** to ensure sepa
 - **WebSocket Reconnection**: The `BlockchainListener` implements exponential backoff to handle connection drops gracefully.
 - **Graceful Shutdown**: The application listens for `SIGINT`/`SIGTERM` to close connections and finish in-flight tasks before exiting, preventing corrupted state or hung connections.
 
+### 7. Gas Modeling (Net Profit)
+- **Problem**: Gross profit is misleading because Ethereum gas fees can eat up margins.
+- **Solution**:
+    - **Dynamic Gas Price**: We fetch the current gas price from the network (using `eth_gasPrice` or `SuggestGasPrice`).
+    - **Net Profit Calculation**: `Net Profit = Gross Profit - (Gas Estimate * Gas Price)`.
+    - **UI**: The dashboard displays a breakdown of Gross Profit, Gas Cost, and Net Profit.
+
 ## 🚀 Setup & Usage
 
 ### Prerequisites
@@ -70,6 +77,17 @@ docker-compose up --build -d
 
 - **Bot Metrics**: `http://localhost:9090/metrics`
 - **Prometheus UI**: `http://localhost:9091`
+- **Dashboard**: `http://localhost:3000`
+
+### Dashboard (Local Development)
+The dashboard is a Next.js application located in the `dashboard/` directory.
+
+```bash
+cd dashboard
+npm install
+npm run dev
+```
+Access at `http://localhost:3000`.
 
 ## 📂 Project Structure
 

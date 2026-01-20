@@ -11,6 +11,8 @@
 
 # Coverage
 *.out
+coverage.out
+dist/
 *.prof
 *.cgo1.go
 *.cgo2.c
