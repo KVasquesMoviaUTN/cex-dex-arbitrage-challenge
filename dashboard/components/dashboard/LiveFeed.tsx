@@ -52,10 +52,15 @@ export default function LiveFeed() {
 								{event.data?.symbol}
 							</div>
 
-							<div className="col-span-4 flex items-center gap-2">
-								<span className="text-slate-400">{event.data?.cexPrice.toFixed(2)}</span>
-								<ArrowRight size={12} className="text-slate-600" />
-								<span className="text-slate-400">{event.data?.dexPrice.toFixed(2)}</span>
+							<div className="col-span-4 flex flex-col justify-center">
+								<div className="flex items-center gap-2">
+									<span className="text-slate-400">{event.data?.cexPrice.toFixed(2)}</span>
+									<ArrowRight size={12} className="text-slate-600" />
+									<span className="text-slate-400">{event.data?.dexPrice.toFixed(2)}</span>
+								</div>
+								<span className={clsx("text-xs font-mono", (event.data?.spreadPct || 0) > 0 ? "text-emerald-500" : "text-red-500")}>
+									{event.data?.spreadPct.toFixed(3)}%
+								</span>
 							</div>
 
 							<div className={clsx(
