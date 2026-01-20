@@ -7,7 +7,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// OrderBook represents a snapshot of the order book from a CEX.
 type OrderBook struct {
 	Bids      []PriceLevel
 	Asks      []PriceLevel
@@ -19,9 +18,9 @@ type OrderBook struct {
 func (ob *OrderBook) CalculateEffectivePrice(side string, amount decimal.Decimal) (decimal.Decimal, bool) {
 	var levels []PriceLevel
 	if side == "buy" {
-		levels = ob.Asks // Buying consumes Asks
+		levels = ob.Asks
 	} else {
-		levels = ob.Bids // Selling consumes Bids
+		levels = ob.Bids
 	}
 
 	remaining := amount
@@ -43,29 +42,26 @@ func (ob *OrderBook) CalculateEffectivePrice(side string, amount decimal.Decimal
 	}
 
 	if remaining.GreaterThan(decimal.Zero) {
-		return decimal.Zero, false // Not enough liquidity
+		return decimal.Zero, false
 	}
 
 	return totalCost.Div(amount), true
 }
 
-// PriceLevel represents a single price level in the order book.
 type PriceLevel struct {
 	Price  decimal.Decimal
 	Amount decimal.Decimal
 }
 
-// PriceQuote represents a price quote from a DEX.
 type PriceQuote struct {
 	Price     decimal.Decimal // Effective price (OutputAmount / InputAmount)
 	GasEstimate *big.Int
 	Timestamp time.Time
 }
 
-// ArbitrageOpportunity represents a detected arbitrage opportunity.
 type ArbitrageOpportunity struct {
-	BuyOn      string          // "CEX" or "DEX"
-	SellOn     string          // "CEX" or "DEX"
+	BuyOn      string
+	SellOn     string
 	BuyPrice   decimal.Decimal
 	SellPrice  decimal.Decimal
 	Profit     decimal.Decimal

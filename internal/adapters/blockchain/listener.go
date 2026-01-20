@@ -21,7 +21,6 @@ func NewListener(clientURL string) ports.BlockchainListener {
 	}
 }
 
-// SubscribeNewHeads subscribes to new block headers with reconnection logic.
 func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-chan error, error) {
 	out := make(chan *big.Int)
 	errChan := make(chan error)
@@ -33,7 +32,6 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 		backoff := time.Second
 		maxBackoff := 30 * time.Second
 
-		// Heartbeat setup
 		heartbeatInterval := 30 * time.Second
 		timer := time.NewTimer(heartbeatInterval)
 		defer timer.Stop()
@@ -43,10 +41,9 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 			case <-ctx.Done():
 				return
 			default:
-				// Attempt to connect
 				client, err := ethclient.DialContext(ctx, l.clientURL)
 				if err != nil {
-					l.logError(errChan, fmt.Errorf("failed to dial eth client: %w", err))
+					l.logError(errChan, fmt.Errorf("dial failed: %w", err))
 					time.Sleep(backoff)
 					backoff *= 2
 					if backoff > maxBackoff {
@@ -55,12 +52,11 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 					continue
 				}
 
-				// Subscribe
 				headers := make(chan *types.Header)
 				sub, err := client.SubscribeNewHead(ctx, headers)
 				if err != nil {
 					client.Close()
-					l.logError(errChan, fmt.Errorf("failed to subscribe: %w", err))
+					l.logError(errChan, fmt.Errorf("sub failed: %w", err))
 					time.Sleep(backoff)
 					backoff *= 2
 					if backoff > maxBackoff {
@@ -69,14 +65,11 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 					continue
 				}
 
-				// Reset backoff on successful connection
 				backoff = time.Second
-				fmt.Println("Connected to Ethereum WebSocket")
+				fmt.Println("ws connected")
 
-				// Listen loop
 				connLoop:
 				for {
-					// Reset timer on every loop start (or better, when we get a message)
 					if !timer.Stop() {
 						select {
 						case <-timer.C:
@@ -91,17 +84,16 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *big.Int, <-ch
 						client.Close()
 						return
 					case err := <-sub.Err():
-						l.logError(errChan, fmt.Errorf("subscription error: %w", err))
+						l.logError(errChan, fmt.Errorf("sub err: %w", err))
 						sub.Unsubscribe()
 						client.Close()
-						break connLoop // Break to outer loop to reconnect
+						break connLoop
 					case <-timer.C:
-						l.logError(errChan, fmt.Errorf("heartbeat timeout: no blocks for %v", heartbeatInterval))
+						l.logError(errChan, fmt.Errorf("heartbeat timeout (%v)", heartbeatInterval))
 						sub.Unsubscribe()
 						client.Close()
 						break connLoop
 					case header := <-headers:
-						// Reset timer happens at top of loop
 						select {
 						case out <- header.Number:
 						case <-ctx.Done():
@@ -122,7 +114,6 @@ func (l *Listener) logError(ch chan<- error, err error) {
 	select {
 	case ch <- err:
 	default:
-		// Don't block if no one is listening to errors
-		fmt.Printf("Blockchain Listener Error: %v\n", err)
+		fmt.Printf("listener err: %v\n", err)
 	}
 }

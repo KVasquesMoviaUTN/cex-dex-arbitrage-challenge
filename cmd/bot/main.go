@@ -17,13 +17,16 @@ import (
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/adapters/blockchain"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/adapters/ethereum"
 	"github.com/KVasquesMoviaUTN/my-go-app/internal/core/services"
+	"github.com/joho/godotenv"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	// 0. Observability Setup
+	// Load .env file if it exists
+	_ = godotenv.Load()
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
@@ -35,7 +38,6 @@ func main() {
 		}
 	}()
 
-	// 1. Configuration
 	viper.SetDefault("ETH_NODE_WS", "wss://mainnet.infura.io/ws/v3/YOUR_KEY")
 	viper.SetDefault("ETH_NODE_HTTP", "https://mainnet.infura.io/v3/YOUR_KEY")
 	viper.SetDefault("SYMBOL", "ETHUSDC")
@@ -78,7 +80,6 @@ func main() {
 	}
 	cfg.MinProfit = minProfit
 
-	// 2. Adapters
 	cexAdapter := binance.NewAdapter()
 
 	dexAdapter, err := ethereum.NewAdapter(viper.GetString("ETH_NODE_HTTP"))
@@ -88,10 +89,8 @@ func main() {
 
 	listener := blockchain.NewListener(viper.GetString("ETH_NODE_WS"))
 
-	// 3. Manager
 	manager := services.NewManager(cfg, cexAdapter, dexAdapter, listener)
 
-	// 4. Graceful Shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -104,7 +103,6 @@ func main() {
 		cancel()
 	}()
 
-	// 5. Start
 	if err := manager.Start(ctx); err != nil {
 		log.Printf("Manager finished with error: %v", err)
 	} else {
