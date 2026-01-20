@@ -29,7 +29,6 @@ func NewAdapter() ports.ExchangeAdapter {
 	}
 }
 
-// OKX API response structures
 type okxResponse struct {
 	Code string    `json:"code"`
 	Msg  string    `json:"msg"`
@@ -128,7 +127,6 @@ func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.Orde
 }
 
 // convertToOKXSymbol converts standard symbols to OKX format
-// ETHUSDC -> ETH-USDC
 func convertToOKXSymbol(symbol string) string {
 	switch symbol {
 	case "ETHUSDC":

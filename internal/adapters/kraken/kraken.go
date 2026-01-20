@@ -29,7 +29,6 @@ func NewAdapter() ports.ExchangeAdapter {
 	}
 }
 
-// Kraken API response structures
 type krakenDepthResponse struct {
 	Error  []string               `json:"error"`
 	Result map[string]krakenDepth `json:"result"`
@@ -126,7 +125,6 @@ func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.Orde
 }
 
 // convertToKrakenSymbol converts standard symbols to Kraken format
-// ETHUSDC -> XETHZUSD
 func convertToKrakenSymbol(symbol string) string {
 	switch symbol {
 	case "ETHUSDC":

@@ -160,30 +160,6 @@ func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
 	// This is a heuristic optimization.
 	skipQuotes := false
 	if slot0 != nil && ob != nil && len(ob.Asks) > 0 {
-		// Calculate Spot Price from SqrtPriceX96
-		// Price = (SqrtPriceX96 / 2^96)^2
-		// We need to handle decimals.
-		
-		
-		
-		
-		// Config says TokenIn=WETH, TokenOut=USDC.
-		
-		slog.Info("Pre-flight check available", "slot0_tick", slot0.Tick)
-	}
-
-	for i, size := range m.cfg.TradeSizes {
-		if skipQuotes {
-			break
-		}
-		i, size := i, size
-		g.Go(func() error {
-			pq, err := m.dex.GetQuote(ctx, m.cfg.TokenInAddr, m.cfg.TokenOutAddr, size, m.cfg.PoolFee)
-			if err != nil {
-				slog.Error("dex quote failed", "size", size, "err", err)
-				return nil
-			}
-			quoteResults[i] = quoteResult{amt: size, quote: pq}
 			return nil
 		})
 	}
