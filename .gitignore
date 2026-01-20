@@ -1,0 +1,24 @@
+# Binaries
+bot
+main
+*.exe
+*.dll
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Go
+vendor/
+go.work
+
+# Environment Variables
+.env
+
+# Logs
+*.log
