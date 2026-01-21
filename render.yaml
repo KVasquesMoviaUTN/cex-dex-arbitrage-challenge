@@ -14,16 +14,16 @@ services:
       - key: PORT
         value: 8080
 
-  # Frontend Service (Next.js) - Optional if using Vercel, but good to have
-  # - type: web
-  #   name: arbitrage-dashboard
-  #   env: node
-  #   plan: free
-  #   buildCommand: cd dashboard && npm install && npm run build
-  #   startCommand: cd dashboard && npm start
-  #   envVars:
-  #     - key: NEXT_PUBLIC_API_URL
-  #       fromService:
-  #         type: web
-  #         name: arbitrage-bot
-  #         property: host
+  # Frontend Service (Next.js)
+  - type: web
+    name: arbitrage-dashboard
+    env: node
+    plan: free
+    buildCommand: cd dashboard && npm install && npm run build
+    startCommand: cd dashboard && npm start
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: arbitrage-bot
+          property: host
