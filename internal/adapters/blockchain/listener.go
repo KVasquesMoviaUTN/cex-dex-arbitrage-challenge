@@ -10,16 +10,19 @@ import (
 	"github.com/KVasquesMoviaUTN/arbitrage-bot-go/internal/core/ports"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"golang.org/x/time/rate"
 )
 
 type Listener struct {
 	clientURL string
 	lastBlock *big.Int
+	limiter   *rate.Limiter
 }
 
 func NewListener(clientURL string) ports.BlockchainListener {
 	return &Listener{
 		clientURL: clientURL,
+		limiter:   rate.NewLimiter(rate.Limit(20), 5), // 20 req/s, burst 5
 	}
 }
 
@@ -68,6 +71,10 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *domain.Block,
 						}
 
 						for i := new(big.Int).Set(start); i.Cmp(end) <= 0; i.Add(i, big.NewInt(1)) {
+							if err := l.limiter.Wait(ctx); err != nil {
+								l.logError(errChan, fmt.Errorf("rate limiter wait failed: %w", err))
+								break
+							}
 							block, err := client.BlockByNumber(ctx, i)
 							if err != nil {
 								l.logError(errChan, fmt.Errorf("backfill failed for block %s: %w", i, err))

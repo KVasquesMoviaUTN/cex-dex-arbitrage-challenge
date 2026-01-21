@@ -18,7 +18,13 @@ type PriceProvider interface {
 	// GetQuote fetches the estimated output amount for a given input amount.
 	// tokenIn and tokenOut are the addresses of the tokens.
 	// fee is the pool fee tier (e.g., 500, 3000, 10000).
+	// GetQuote fetches the estimated output amount for a given input amount.
+	// tokenIn and tokenOut are the addresses of the tokens.
+	// fee is the pool fee tier (e.g., 500, 3000, 10000).
 	GetQuote(ctx context.Context, tokenIn, tokenOut string, amountIn *big.Int, fee int64) (*domain.PriceQuote, error)
+
+	// GetQuoteExactOutput fetches the estimated input amount for a given output amount.
+	GetQuoteExactOutput(ctx context.Context, tokenIn, tokenOut string, amountOut *big.Int, fee int64) (*domain.PriceQuote, error)
 
 	// GetGasPrice fetches the current gas price from the network.
 	GetGasPrice(ctx context.Context) (*big.Int, error)
