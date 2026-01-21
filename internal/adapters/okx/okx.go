@@ -126,7 +126,6 @@ func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.Orde
 	return orderBook, nil
 }
 
-// convertToOKXSymbol converts standard symbols to OKX format
 func convertToOKXSymbol(symbol string) string {
 	switch symbol {
 	case "ETHUSDC":

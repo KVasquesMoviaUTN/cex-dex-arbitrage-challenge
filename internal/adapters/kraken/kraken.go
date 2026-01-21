@@ -124,7 +124,6 @@ func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.Orde
 	return orderBook, nil
 }
 
-// convertToKrakenSymbol converts standard symbols to Kraken format
 func convertToKrakenSymbol(symbol string) string {
 	switch symbol {
 	case "ETHUSDC":
