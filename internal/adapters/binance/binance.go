@@ -11,6 +11,7 @@ import (
 	"github.com/KVasquesMoviaUTN/arbitrage-bot-go/internal/core/ports"
 	"github.com/shopspring/decimal"
 	"github.com/sony/gobreaker"
+	"golang.org/x/time/rate"
 )
 
 const baseURL = "https://api.binance.com/api/v3"
@@ -18,6 +19,7 @@ const baseURL = "https://api.binance.com/api/v3"
 type Adapter struct {
 	client  *http.Client
 	cb      *gobreaker.CircuitBreaker
+	limiter *rate.Limiter
 	baseURL string
 }
 
@@ -37,6 +39,7 @@ func NewAdapter(baseURL string) ports.ExchangeAdapter {
 			Timeout: 5 * time.Second,
 		},
 		cb:      gobreaker.NewCircuitBreaker(settings),
+		limiter: rate.NewLimiter(rate.Limit(20), 5), // 20 req/s, burst 5
 		baseURL: baseURL,
 	}
 }
@@ -49,6 +52,10 @@ type depthResponse struct {
 
 
 func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.OrderBook, error) {
+	if err := a.limiter.Wait(ctx); err != nil {
+		return nil, fmt.Errorf("rate limiter wait failed: %w", err)
+	}
+
 	body, err := a.cb.Execute(func() (interface{}, error) {
 		url := fmt.Sprintf("%s/depth?symbol=%s&limit=100", a.baseURL, symbol)
 		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
