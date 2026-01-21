@@ -4,6 +4,7 @@
 - [x] **Circuit Breaker**: Implement a circuit breaker for the Binance API to prevent cascading failures and IP bans (HTTP 429).
 - [ ] **Rate Limiting**: Add a rate limiter to the `BinanceAdapter` to respect API limits.
 - [ ] **Robust Reconnection**: Update `BlockchainListener` to track `lastProcessedBlock` and backfill missing blocks upon reconnection.
+- [ ] **Rate Limiting**: Add a rate limiter to the `BlockchainListener` to respect API limits.
 
 ## Medium Priority (Accuracy)
 - [ ] **Dynamic Gas Pricing**: Replace the hardcoded 30 Gwei gas price with a dynamic fetch from the Ethereum node (`eth_gasPrice` or `eth_maxFeePerGas`).

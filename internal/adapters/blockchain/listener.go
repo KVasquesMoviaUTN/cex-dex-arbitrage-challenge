@@ -3,6 +3,7 @@ package blockchain
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/KVasquesMoviaUTN/arbitrage-bot-go/internal/core/domain"
@@ -13,6 +14,7 @@ import (
 
 type Listener struct {
 	clientURL string
+	lastBlock *big.Int
 }
 
 func NewListener(clientURL string) ports.BlockchainListener {
@@ -50,6 +52,34 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *domain.Block,
 						backoff = maxBackoff
 					}
 					continue
+					continue
+				}
+
+				// Backfill missing blocks
+				if l.lastBlock != nil {
+					head, err := client.HeaderByNumber(ctx, nil)
+					if err == nil && head.Number.Cmp(l.lastBlock) > 0 {
+						start := new(big.Int).Add(l.lastBlock, big.NewInt(1))
+						end := head.Number
+						
+						// Limit backfill to 50 blocks
+						if new(big.Int).Sub(end, start).Cmp(big.NewInt(50)) > 0 {
+							start = new(big.Int).Sub(end, big.NewInt(50))
+						}
+
+						for i := new(big.Int).Set(start); i.Cmp(end) <= 0; i.Add(i, big.NewInt(1)) {
+							block, err := client.BlockByNumber(ctx, i)
+							if err != nil {
+								l.logError(errChan, fmt.Errorf("backfill failed for block %s: %w", i, err))
+								continue
+							}
+							out <- &domain.Block{
+								Number:    block.Number(),
+								Timestamp: time.Unix(int64(block.Time()), 0),
+							}
+							l.lastBlock = block.Number()
+						}
+					}
 				}
 
 				headers := make(chan *types.Header)
@@ -98,6 +128,7 @@ func (l *Listener) SubscribeNewHeads(ctx context.Context) (<-chan *domain.Block,
 							Number:    header.Number,
 							Timestamp: time.Unix(int64(header.Time), 0),
 						}
+						l.lastBlock = header.Number
 						select {
 						case out <- block:
 						case <-ctx.Done():
