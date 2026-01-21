@@ -89,3 +89,27 @@ func TestGetGasPrice(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, big.NewInt(30000000000), gasPrice)
 }
+
+func TestGetGasPrice_Caching(t *testing.T) {
+	reqCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reqCount++
+		response := `{"jsonrpc":"2.0","id":1,"result":"0x6fc23ac00"}`
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintln(w, response)
+	}))
+	defer ts.Close()
+
+	adapter, err := NewAdapter(ts.URL)
+	assert.NoError(t, err)
+
+	// First call
+	_, err = adapter.GetGasPrice(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, reqCount)
+
+	// Second call (immediate) - should hit cache
+	_, err = adapter.GetGasPrice(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, 1, reqCount)
+}

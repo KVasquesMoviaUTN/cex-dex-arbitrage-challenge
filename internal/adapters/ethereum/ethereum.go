@@ -27,6 +27,10 @@ type Adapter struct {
 	client    *ethclient.Client
 	parsedABI abi.ABI
 	poolCache sync.Map
+	
+	gasMu     sync.Mutex
+	gasPrice  *big.Int
+	gasExpiry time.Time
 }
 
 func NewAdapter(clientURL string) (ports.PriceProvider, error) {
@@ -120,7 +124,21 @@ func (a *Adapter) GetQuote(ctx context.Context, tokenIn, tokenOut string, amount
 }
 
 func (a *Adapter) GetGasPrice(ctx context.Context) (*big.Int, error) {
-	return a.client.SuggestGasPrice(ctx)
+	a.gasMu.Lock()
+	defer a.gasMu.Unlock()
+
+	if a.gasPrice != nil && time.Now().Before(a.gasExpiry) {
+		return a.gasPrice, nil
+	}
+
+	price, err := a.client.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	a.gasPrice = price
+	a.gasExpiry = time.Now().Add(15 * time.Second)
+	return price, nil
 }
 
 
