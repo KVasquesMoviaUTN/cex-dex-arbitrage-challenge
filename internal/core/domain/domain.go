@@ -23,8 +23,7 @@ type Slot0 struct {
 	Tick         *big.Int
 }
 
-// CalculateEffectivePrice calculates the average price to fill the given amount.
-// Returns the average price and true if the amount can be filled, or 0 and false if not enough liquidity.
+
 func (ob *OrderBook) CalculateEffectivePrice(side string, amount decimal.Decimal) (decimal.Decimal, bool) {
 	var levels []PriceLevel
 	if side == "buy" {
@@ -64,7 +63,7 @@ type PriceLevel struct {
 }
 
 type PriceQuote struct {
-	Price     decimal.Decimal // Effective price (OutputAmount / InputAmount)
+	Price     decimal.Decimal
 	GasEstimate *big.Int
 	Timestamp time.Time
 }
@@ -88,7 +87,7 @@ type TradeData struct {
 }
 
 type ArbitrageEvent struct {
-	Type        string     `json:"type"` // "HEARTBEAT" | "OPPORTUNITY"
+	Type        string     `json:"type"`
 	BlockNumber uint64     `json:"blockNumber"`
 	Timestamp   time.Time  `json:"timestamp"`
 	Data        *TradeData `json:"data,omitempty"`

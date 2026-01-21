@@ -47,8 +47,7 @@ type depthResponse struct {
 	Asks         [][]string `json:"asks"`
 }
 
-// GetOrderBook fetches the current order book for the given symbol.
-// Symbol should be like "ETHUSDC".
+
 func (a *Adapter) GetOrderBook(ctx context.Context, symbol string) (*domain.OrderBook, error) {
 	body, err := a.cb.Execute(func() (interface{}, error) {
 		url := fmt.Sprintf("%s/depth?symbol=%s&limit=100", a.baseURL, symbol)

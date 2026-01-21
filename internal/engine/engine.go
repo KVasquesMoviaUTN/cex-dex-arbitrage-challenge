@@ -59,7 +59,7 @@ func New(cfg Config) (*Engine, error) {
 }
 
 func (e *Engine) Run(ctx context.Context) error {
-	// Metrics Server
+
 	go func() {
 		addr := ":" + e.cfg.MetricsPort
 		http.Handle("/metrics", promhttp.Handler())
@@ -69,12 +69,12 @@ func (e *Engine) Run(ctx context.Context) error {
 		}
 	}()
 
-	// WebSocket Server
+
 	go func() {
 		e.notifier.Start(":8080")
 	}()
 
-	// Graceful Shutdown
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 

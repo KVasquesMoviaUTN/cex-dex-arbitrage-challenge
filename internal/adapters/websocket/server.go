@@ -11,7 +11,7 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins for now (dev mode)
+		return true
 	},
 }
 
@@ -74,8 +74,7 @@ func (s *Server) handleMessages() {
 			if err != nil {
 				slog.Error("WS write failed", "error", err)
 				client.Close()
-				// or use a dedicated loop for removal. 
-				// For simplicity here, we just close it and let the read loop handle removal.
+
 			}
 		}
 		s.mu.RUnlock()

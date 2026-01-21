@@ -22,7 +22,7 @@ type Config struct {
 	TokenOutDec   int32
 	Symbol        string
 	PoolFee       int64
-	TradeSizes    []*big.Int // List of trade sizes in Wei
+	TradeSizes    []*big.Int
 	MinProfit     decimal.Decimal
 	MaxWorkers    int
 	CacheDuration time.Duration
@@ -87,7 +87,7 @@ func (m *Manager) Start(ctx context.Context) error {
 }
 
 func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
-	// Circuit Breaker: Check for stale blocks
+
 	if time.Since(block.Timestamp) > 20*time.Second {
 		slog.Warn("Circuit Breaker: Skipping stale block", "block", block.Number, "age", time.Since(block.Timestamp))
 		return
@@ -155,9 +155,7 @@ func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
 	}
 	quoteResults := make([]quoteResult, len(m.cfg.TradeSizes))
 
-	// Pre-flight Check: Calculate Spot Price from Slot0
-	// If Spot Price spread is very negative (e.g. < -1%), skip expensive quotes.
-	// This is a heuristic optimization.
+
 	if slot0 != nil && ob != nil && len(ob.Asks) > 0 {
 		slog.Info("Pre-flight check available", "slot0_tick", slot0.Tick)
 	}
@@ -215,7 +213,7 @@ func (m *Manager) checkArbitrageWithData(ctx context.Context, blockNum *big.Int,
 	
 	gasUsed := decimal.NewFromBigInt(pq.GasEstimate, 0)
 	
-	// Gas Price is in Wei. Convert to ETH (1e-18), then multiply by CEX Price (USDC/ETH) to get Gas Cost in USDC.
+
 	gasPriceEth := decimal.NewFromBigInt(gasPriceWei, -18)
 	gasCost := gasUsed.Mul(gasPriceEth).Mul(cexPrice)
 	
