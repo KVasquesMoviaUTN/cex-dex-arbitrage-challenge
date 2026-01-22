@@ -10,7 +10,7 @@ import (
 
 	"github.com/KVasquesMoviaUTN/cex-dex-arbitrage-challenge/internal/core/domain"
 	"github.com/KVasquesMoviaUTN/cex-dex-arbitrage-challenge/internal/core/ports"
-	"github.com/ethereum/go-ethereum"
+	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
