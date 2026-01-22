@@ -15,11 +15,11 @@ import (
 	"github.com/KVasquesMoviaUTN/cex-dex-arbitrage-challenge/internal/core/services"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	testifyMock "github.com/stretchr/testify/mock"
 )
 
 type MockBlockchainListener struct {
-	mock.Mock
+	testifyMock.Mock
 }
 
 func (m *MockBlockchainListener) SubscribeNewHeads(ctx context.Context) (<-chan *domain.Block, <-chan error, error) {
@@ -28,7 +28,7 @@ func (m *MockBlockchainListener) SubscribeNewHeads(ctx context.Context) (<-chan 
 }
 
 type MockNotificationService struct {
-	mock.Mock
+	testifyMock.Mock
 	events chan domain.ArbitrageEvent
 }
 
@@ -113,7 +113,7 @@ func TestEndToEndArbitrageFlow(t *testing.T) {
 
 	blockChan := make(chan *domain.Block)
 	errChan := make(chan error)
-	mockListener.On("SubscribeNewHeads", mock.Anything).Return((<-chan *domain.Block)(blockChan), (<-chan error)(errChan), nil)
+	mockListener.On("SubscribeNewHeads", testifyMock.Anything).Return((<-chan *domain.Block)(blockChan), (<-chan error)(errChan), nil)
 
 
 

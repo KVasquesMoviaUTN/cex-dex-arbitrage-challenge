@@ -5,12 +5,12 @@ import (
 	"math/big"
 
 	"github.com/KVasquesMoviaUTN/cex-dex-arbitrage-challenge/internal/core/domain"
-	"github.com/stretchr/testify/mock"
+	testifyMock "github.com/stretchr/testify/mock"
 )
 
 // MockExchangeAdapter is a mock implementation of ports.ExchangeAdapter
 type MockExchangeAdapter struct {
-	mock.Mock
+	testifyMock.Mock
 }
 
 func (m *MockExchangeAdapter) GetOrderBook(ctx context.Context, symbol string) (*domain.OrderBook, error) {
@@ -23,7 +23,7 @@ func (m *MockExchangeAdapter) GetOrderBook(ctx context.Context, symbol string) (
 
 // MockPriceProvider is a mock implementation of ports.PriceProvider
 type MockPriceProvider struct {
-	mock.Mock
+	testifyMock.Mock
 }
 
 func (m *MockPriceProvider) GetQuote(ctx context.Context, tokenIn, tokenOut string, amountIn *big.Int, fee int64) (*domain.PriceQuote, error) {
@@ -60,7 +60,7 @@ func (m *MockPriceProvider) GetSlot0(ctx context.Context, tokenIn, tokenOut stri
 
 // MockBlockchainListener is a mock implementation of ports.BlockchainListener
 type MockBlockchainListener struct {
-	mock.Mock
+	testifyMock.Mock
 }
 
 func (m *MockBlockchainListener) SubscribeNewHeads(ctx context.Context) (<-chan *domain.Block, <-chan error, error) {
@@ -81,7 +81,7 @@ func (m *MockBlockchainListener) SubscribeNewHeads(ctx context.Context) (<-chan 
 
 // MockNotificationService is a mock implementation of ports.NotificationService
 type MockNotificationService struct {
-	mock.Mock
+	testifyMock.Mock
 }
 
 func (m *MockNotificationService) Broadcast(event domain.ArbitrageEvent) {
