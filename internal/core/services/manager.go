@@ -155,9 +155,7 @@ func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
 	}
 	quoteResults := make([]quoteResult, len(m.cfg.TradeSizes))
 
-	if slot0 != nil && ob != nil && len(ob.Asks) > 0 {
-		slog.Info("Pre-flight check available", "slot0_tick", slot0.Tick)
-	}
+
 
 	for i, size := range m.cfg.TradeSizes {
 		i, size := i, size
@@ -180,6 +178,10 @@ func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
 	if err := g.Wait(); err != nil {
 		slog.Error("data fetch failed", "err", err)
 		return
+	}
+
+	if slot0 != nil && ob != nil && len(ob.Asks) > 0 {
+		slog.Info("Pre-flight check available", "slot0_tick", slot0.Tick)
 	}
 
 	for _, res := range quoteResults {
