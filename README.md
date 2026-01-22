@@ -9,7 +9,7 @@ This project implements a production-grade, real-time arbitrage detection bot fo
 graph TD
     subgraph External Systems
         ETH[Ethereum Node]
-        CEX[CEX API (Binance/Kraken/OKX)]
+        CEX["CEX API (Binance/Kraken/OKX)"]
         DEX[Uniswap V3 Quoter]
     end
 
