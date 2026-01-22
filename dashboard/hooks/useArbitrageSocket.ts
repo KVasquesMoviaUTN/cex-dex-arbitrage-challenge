@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useStore } from '../lib/store';
 import { ArbitrageEvent } from '../lib/types';
 
-const MOCK_MODE = true; // Set to false when backend is ready
+const MOCK_MODE = false; // Set to true to test
 const WS_URL = 'ws://localhost:8080/ws';
 
 export function useArbitrageSocket() {
