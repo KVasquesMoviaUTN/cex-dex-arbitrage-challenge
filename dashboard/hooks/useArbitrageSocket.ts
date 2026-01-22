@@ -4,7 +4,7 @@ import { ArbitrageEvent } from '../lib/types';
 
 const MOCK_MODE = false; // Set to true to test
 const WS_URL = process.env.NEXT_PUBLIC_API_URL 
-  ? `${process.env.NEXT_PUBLIC_API_URL.replace('http', 'ws')}/ws`
+  ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '').replace('http', 'ws')}/ws`
   : 'ws://localhost:8080/ws';
 
 export function useArbitrageSocket() {
