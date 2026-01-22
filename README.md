@@ -3,6 +3,8 @@
 ## Project Overview
 This project implements a production-grade, real-time arbitrage detection bot for the ETH/USDC pair, comparing prices between Binance (CEX) and Uniswap V3 (DEX). It is designed to be robust, accurate, and performant, following Hexagonal Architecture principles.
 
+🚀 **Live Demo**: [https://cex-dex-arbitrage-challenge.vercel.app/](https://cex-dex-arbitrage-challenge.vercel.app/)
+
 ## 🏗 Architecture Diagram
 
 ```mermaid
