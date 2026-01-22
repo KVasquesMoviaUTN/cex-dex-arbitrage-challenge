@@ -265,7 +265,7 @@ func (m *Manager) checkCexBuyDexSell(blockNum *big.Int, ob *domain.OrderBook, am
 	if profit.GreaterThan(m.cfg.MinProfit) {
 		observability.ArbitrageOpsFound.Inc()
 		p, _ := profit.Float64()
-		observability.ArbitrageProfit.WithLabelValues("USDC").Add(p)
+		observability.ArbitrageProfit.WithLabelValues(m.cfg.Symbol).Add(p)
 
 		m.printReport(amtIn, cexPrice, dexPrice, profit, "CEX -> DEX")
 	}
@@ -323,7 +323,7 @@ func (m *Manager) checkDexBuyCexSell(blockNum *big.Int, ob *domain.OrderBook, am
 	if profit.GreaterThan(m.cfg.MinProfit) {
 		observability.ArbitrageOpsFound.Inc()
 		p, _ := profit.Float64()
-		observability.ArbitrageProfit.WithLabelValues("USDC").Add(p)
+		observability.ArbitrageProfit.WithLabelValues(m.cfg.Symbol).Add(p)
 
 		m.printReport(ethAmount, cexPrice, dexPrice, profit, "DEX -> CEX")
 	}

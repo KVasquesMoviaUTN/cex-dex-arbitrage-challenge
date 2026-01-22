@@ -8,7 +8,7 @@ services:
     env_file:
       - .env
     environment:
-      - SYMBOL=ETHUSDC
+      - SYMBOL=ETHUSDT
       - MIN_PROFIT=10.0
       - TRADE_SIZES=1000000000000000000,10000000000000000000
     ports:
