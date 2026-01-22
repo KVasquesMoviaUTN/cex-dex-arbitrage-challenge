@@ -155,8 +155,6 @@ func (m *Manager) processBlock(ctx context.Context, block *domain.Block) {
 	}
 	quoteResults := make([]quoteResult, len(m.cfg.TradeSizes))
 
-
-
 	for i, size := range m.cfg.TradeSizes {
 		i, size := i, size
 		g.Go(func() error {
