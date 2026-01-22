@@ -34,9 +34,28 @@ func (s *Server) Start(addr string) {
 	go s.handleMessages()
 
 	slog.Info("WebSocket server starting", "addr", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	
+	// Wrap the default mux with CORS middleware
+	handler := corsMiddleware(http.DefaultServeMux)
+	
+	if err := http.ListenAndServe(addr, handler); err != nil {
 		slog.Error("WebSocket server failed", "error", err)
 	}
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (s *Server) handleConnections(w http.ResponseWriter, r *http.Request) {
