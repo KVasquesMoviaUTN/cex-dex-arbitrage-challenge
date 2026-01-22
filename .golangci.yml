@@ -16,9 +16,11 @@ linters:
     - misspell
     - unconvert
     - unparam
-    - shadow
 
 linters-settings:
+  govet:
+    enable:
+      - shadow
   gofmt:
     simplify: true
 
